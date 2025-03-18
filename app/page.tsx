@@ -5,7 +5,27 @@ import { Brain, GitGraph, Target, ChevronRight, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-const algorithms = [
+interface AlgorithmItem {
+  name: string;
+  id: string;
+  description: string;
+}
+
+interface AlgorithmCategory {
+  category: string;
+  icon: React.ReactNode;
+  items: AlgorithmItem[];
+}
+
+// Define type for your component props
+interface AlgorithmCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  id: string;
+}
+
+const algorithms: AlgorithmCategory[] = [
   {
     category: "Machine Learning",
     icon: <Brain className="w-6 h-6" />,
@@ -35,7 +55,7 @@ const BackgroundPattern = () => (
   </div>
 );
 
-const AlgorithmCard = ({ title, description, icon, id }) => (
+const AlgorithmCard = ({ title, description, icon, id }: AlgorithmCardProps) => (
   <Link href={`/algorithms/${id}`}>
     <div className="relative group cursor-pointer">
       <div className="p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:scale-105">
@@ -84,7 +104,7 @@ export default function Home() {
       <main className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-500 to-cyan-500 text-transparent bg-clip-text animate-text">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-500 to-cyan-500 text-transparent bg-clip-text animate-text leading-tight leading-none">
               AlgoViz
             </h1>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
