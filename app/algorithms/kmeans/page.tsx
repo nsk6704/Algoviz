@@ -30,6 +30,10 @@ const KMeansVisualization = () => {
   const [isSprayMode, setIsSprayMode] = useState(false);
   const [lastSprayPos, setLastSprayPos] = useState<{ x: number; y: number } | null>(null);
 
+  // Base dimensions for the virtual canvas that all coordinates are relative to
+  const BASE_WIDTH = 800;
+  const BASE_HEIGHT = 600;
+
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1',
     '#96CEB4', '#FFEEAD', '#D4A5A5',
@@ -40,8 +44,8 @@ const KMeansVisualization = () => {
     const newPoints: Point[] = [];
     for (let i = 0; i < count; i++) {
       newPoints.push({
-        x: Math.random() * 800,
-        y: Math.random() * 600,
+        x: Math.random() * BASE_WIDTH,
+        y: Math.random() * BASE_HEIGHT,
         cluster: -1
       });
     }
@@ -56,12 +60,25 @@ const KMeansVisualization = () => {
 
   const initializeCentroids = () => {
     const newCentroids: Centroid[] = [];
-    for (let i = 0; i < k; i++) {
-      newCentroids.push({
-        x: Math.random() * 800,
-        y: Math.random() * 600
-      });
+    
+    // Distribute centroids evenly across the canvas
+    const rows = Math.ceil(Math.sqrt(k)); // Number of rows
+    const cols = Math.ceil(k / rows); // Number of columns
+    const cellWidth = BASE_WIDTH / cols;
+    const cellHeight = BASE_HEIGHT / rows;
+
+    let count = 0;
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (count >= k) break;
+        newCentroids.push({
+          x: (col + 0.5) * cellWidth, // Center of the cell
+          y: (row + 0.5) * cellHeight // Center of the cell
+        });
+        count++;
+      }
     }
+
     setCentroids(newCentroids);
   };
 
@@ -108,6 +125,26 @@ const KMeansVisualization = () => {
     setCentroids(newCentroids);
   };
 
+  // Convert canvas coordinates to logical coordinates
+  const canvasToLogicalCoords = (canvasX: number, canvasY: number, rect: DOMRect): { x: number, y: number } => {
+    // Calculate the scale and offset used in rendering
+    const scaleX = rect.width / BASE_WIDTH;
+    const scaleY = rect.height / BASE_HEIGHT;
+    const scale = Math.min(scaleX, scaleY);
+    
+    const offsetX = (rect.width - BASE_WIDTH * scale) / 2;
+    const offsetY = (rect.height - BASE_HEIGHT * scale) / 2;
+    
+    // Inverse transform to get logical coordinates
+    const logicalX = (canvasX - offsetX) / scale;
+    const logicalY = (canvasY - offsetY) / scale;
+    
+    return { 
+      x: Math.max(0, Math.min(BASE_WIDTH, logicalX)), 
+      y: Math.max(0, Math.min(BASE_HEIGHT, logicalY)) 
+    };
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isSprayMode) return;
     
@@ -115,8 +152,11 @@ const KMeansVisualization = () => {
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left);
-    const y = (e.clientY - rect.top);
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Convert to logical coordinates
+    const { x, y } = canvasToLogicalCoords(mouseX, mouseY, rect);
     
     const newPoints = [...points];
     const radius = (sprayRadius / 100) * 100; // Convert percentage to pixels
@@ -124,11 +164,17 @@ const KMeansVisualization = () => {
     for (let i = 0; i < sprayDensity / 10; i++) {
       const angle = Math.random() * Math.PI * 2;
       const r = Math.random() * radius;
-      newPoints.push({
-        x: x + Math.cos(angle) * r,
-        y: y + Math.sin(angle) * r,
-        cluster: -1
-      });
+      const px = x + Math.cos(angle) * r;
+      const py = y + Math.sin(angle) * r;
+      
+      // Ensure point is within canvas bounds
+      if (px >= 0 && px <= BASE_WIDTH && py >= 0 && py <= BASE_HEIGHT) {
+        newPoints.push({
+          x: px,
+          y: py,
+          cluster: -1
+        });
+      }
     }
     
     setPoints(newPoints);
@@ -140,16 +186,60 @@ const KMeansVisualization = () => {
     handleCanvasClick(e);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isSprayMode) return;
+    e.preventDefault(); // Prevent scrolling
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Convert to logical coordinates
+    const { x, y } = canvasToLogicalCoords(touchX, touchY, rect);
+    
+    const newPoints = [...points];
+    const radius = (sprayRadius / 100) * 100;
+    
+    for (let i = 0; i < sprayDensity / 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * radius;
+      const px = x + Math.cos(angle) * r;
+      const py = y + Math.sin(angle) * r;
+      
+      // Ensure point is within canvas bounds
+      if (px >= 0 && px <= BASE_WIDTH && py >= 0 && py <= BASE_HEIGHT) {
+        newPoints.push({
+          x: px,
+          y: py,
+          cluster: -1
+        });
+      }
+    }
+    
+    setPoints(newPoints);
+    setLastSprayPos({ x, y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isSprayMode) return;
+    e.preventDefault(); // Prevent scrolling
+    handleTouchStart(e);
+  };
+
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    // Ensure the canvas is properly sized with device pixel ratio
-    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
     
+    // Set up the canvas buffer size
     if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -158,50 +248,88 @@ const KMeansVisualization = () => {
       ctx.scale(dpr, dpr);
     }
 
-    // Disable smoothing for crisp rendering
+    // Clear canvas
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw points with crisp edges
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    
+    // Calculate scale to fit entire logical space
+    const scaleX = rect.width / BASE_WIDTH;
+    const scaleY = rect.height / BASE_HEIGHT;
+    const scale = Math.min(scaleX, scaleY);
+    
+    // Calculate centering offset to keep everything in the middle
+    const offsetX = (rect.width - BASE_WIDTH * scale) / 2;
+    const offsetY = (rect.height - BASE_HEIGHT * scale) / 2;
+    
+    // Calculate appropriate point sizes based on scale
+    const pointSize = Math.max(2, Math.min(3, 3 * scale));
+    const centroidOuterSize = Math.max(4, Math.min(8, 8 * scale));
+    const centroidInnerSize = Math.max(2, Math.min(3, 3 * scale));
+    const lineWidth = Math.max(0.5, Math.min(1.5, 1.5 * scale));
+    
+    // Draw points with fixed scale
     points.forEach(point => {
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+      ctx.arc(
+        point.x * scale + offsetX, 
+        point.y * scale + offsetY, 
+        pointSize, 
+        0, 
+        Math.PI * 2
+      );
       ctx.fillStyle = point.cluster >= 0 ? colors[point.cluster] : '#ffffff';
       ctx.fill();
-      // Add a subtle border for better definition
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = lineWidth * 0.5;
       ctx.stroke();
     });
-
-    // Draw centroids with sharp edges
+    
+    // Draw centroids with fixed scale
     centroids.forEach((centroid, idx) => {
       // Outer circle (filled)
       ctx.beginPath();
-      ctx.arc(centroid.x, centroid.y, 8, 0, Math.PI * 2);
+      ctx.arc(
+        centroid.x * scale + offsetX, 
+        centroid.y * scale + offsetY, 
+        centroidOuterSize, 
+        0, 
+        Math.PI * 2
+      );
       ctx.fillStyle = colors[idx];
       ctx.fill();
       
       // Border
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = lineWidth;
       ctx.stroke();
       
       // Inner circle (white dot for visibility)
       ctx.beginPath();
-      ctx.arc(centroid.x, centroid.y, 3, 0, Math.PI * 2);
+      ctx.arc(
+        centroid.x * scale + offsetX, 
+        centroid.y * scale + offsetY, 
+        centroidInnerSize, 
+        0, 
+        Math.PI * 2
+      );
       ctx.fillStyle = '#ffffff';
       ctx.fill();
     });
-
-    // Draw spray preview if in spray mode
+    
+    // Draw spray preview
     if (isSprayMode && lastSprayPos) {
       ctx.beginPath();
-      ctx.arc(lastSprayPos.x, lastSprayPos.y, (sprayRadius / 100) * 100, 0, Math.PI * 2);
+      ctx.arc(
+        lastSprayPos.x * scale + offsetX, 
+        lastSprayPos.y * scale + offsetY, 
+        (sprayRadius / 100) * 100 * scale, 
+        0, 
+        Math.PI * 2
+      );
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = lineWidth;
       ctx.stroke();
     }
   };
@@ -357,18 +485,21 @@ const KMeansVisualization = () => {
             </div>
           </div>
           
-          {/* Canvas - centered with max width */}
+          {/* Canvas - improved for mobile */}
           <div className="flex justify-center">
             <div className="w-full max-w-3xl">
-              <canvas
-                ref={canvasRef}
-                width={800}
-                height={600}
-                className="bg-black/50 rounded-lg w-full cursor-crosshair"
-                style={{ aspectRatio: '4/3' }}
-                onClick={handleCanvasClick}
-                onMouseMove={handleCanvasMove}
-              />
+              <div className="relative bg-black/50 rounded-lg overflow-hidden" style={{ paddingBottom: '75%' }}>
+                <canvas
+                  ref={canvasRef}
+                  width={BASE_WIDTH}
+                  height={BASE_HEIGHT}
+                  className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                  onClick={handleCanvasClick}
+                  onMouseMove={handleCanvasMove}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                />
+              </div>
             </div>
           </div>
         </div>
