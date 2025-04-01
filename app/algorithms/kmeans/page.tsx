@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, Play, Pause, SprayCan as Spray } from "lucide-react";
+import { RefreshCw, Play, Pause, SprayCan as Spray, GitGraph } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface Point {
   x: number;
@@ -27,9 +29,16 @@ const KMeansVisualization = () => {
   const [animationSpeed, setAnimationSpeed] = useState(50); // 0-100, higher is faster
   const [sprayDensity, setSprayDensity] = useState(100); // number of points
   const [sprayRadius, setSprayRadius] = useState(50); // 0-100
-  const [isSprayMode, setIsSprayMode] = useState(false);
+  const [isSprayMode, setIsSprayMode] = useState(true);
   const [lastSprayPos, setLastSprayPos] = useState<{ x: number; y: number } | null>(null);
-
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   // Base dimensions for the virtual canvas that all coordinates are relative to
   const BASE_WIDTH = 800;
   const BASE_HEIGHT = 600;
@@ -374,9 +383,27 @@ const KMeansVisualization = () => {
   }, [isRunning, points, centroids, animationSpeed]);
 
   return (
+    <div className="min-h-screen bg-black text-white">
+    {/* Navbar */}
+    <header className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        scrolled ? "bg-black/50 backdrop-blur-lg shadow-lg" : ""
+      )}>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GitGraph className="w-8 h-8 text-purple-500" />
+            <span className="text-xl font-bold">AlgoViz</span>
+          </div>
+          <nav className="flex items-center gap-6">
+            <Link href="/" className="text-gray-300 hover:text-white transition-colors">
+              Home
+            </Link>
+          </nav>
+        </div>
+      </header>
     <div className="min-h-screen bg-black text-white p-4 sm:p-8 flex flex-col justify-center">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8    text-center bg-gradient-to-r from-purple-500 to-cyan-500 text-transparent bg-clip-text">
           K-Means Clustering Visualization
         </h1>
         
@@ -527,6 +554,7 @@ const KMeansVisualization = () => {
         </div>
       </div>
     </div>
+  </div>
   );
 };
 
