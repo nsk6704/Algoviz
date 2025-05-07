@@ -42,8 +42,7 @@ const algorithms: AlgorithmCategory[] = [
     items: [
       { name: "A* Algorithm (8 Puzzle)", id: "astar", description: "Pathfinding visualization with heuristic search" },
       { name: "Minimax with α-β Pruning", id: "minimax", description: "Game tree visualization with pruning demonstration" },
-      { name: "Hill Climb Search", id: "hillclimb", description: "Local search optimization visualization" },
-      { name: "Tic Tac Toe", id: "tictactoe", description: "AI gameplay with decision tree visualization" }
+      { name: "Hill Climb Search", id: "hillclimb", description: "Local search optimization visualization" }
     ]
   }
 ];
