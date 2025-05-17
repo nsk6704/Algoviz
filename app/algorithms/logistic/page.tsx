@@ -318,23 +318,6 @@ const LogisticRegressionVisualization: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navbar */}
-      <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled ? "bg-black/50 backdrop-blur-lg shadow-lg" : ""
-      )}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GitGraph className="w-8 h-8 text-purple-500" />
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-500 to-cyan-500 text-transparent bg-clip-text">AlgoViz</span>
-          </div>
-          <nav className="flex items-center gap-6">
-            <Link href="/" className="text-gray-300 hover:text-white transition-colors">
-              Home
-            </Link>
-          </nav>
-        </div>
-      </header>
 
       <div className="min-h-screen bg-black text-white p-4 sm:p-8 flex flex-col justify-center pt-20">
         <div className="max-w-5xl mx-auto">

@@ -84,21 +84,7 @@ export default function Home() {
     <div className="min-h-screen bg-black text-white">
       <BackgroundPattern />
       
-      <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled ? "bg-black/50 backdrop-blur-lg shadow-lg" : ""
-      )}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GitGraph className="w-8 h-8 text-purple-500" />
-            <span className="text-xl font-bold ">AlgoViz</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <a href="#machine-learning" className="text-gray-300 hover:text-white transition-colors">Machine Learning</a>
-            <a href="#artificial-intelligence" className="text-gray-300 hover:text-white transition-colors">Artificial Intelligence</a>
-          </nav>
-        </div>
-      </header>
+     
 
       <main className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
